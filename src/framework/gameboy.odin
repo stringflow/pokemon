@@ -391,14 +391,14 @@ gameboy_save_state_to_disk :: proc(gb: ^GameBoy, path: string) -> (ok: bool) {
     state := gameboy_save_state(gb)
     defer delete(state)
 
-    return os.write_entire_file(path, state)
+    return os.write_entire_file(path, state) != nil
 }
 
 gameboy_save_state_to_buf :: proc(gb: ^GameBoy, path: string) -> (ok: bool) {
     state := gameboy_save_state(gb)
     defer delete(state)
 
-    return os.write_entire_file(path, state)
+    return os.write_entire_file(path, state) != nil
 }
 
 gameboy_load_state :: proc(gb: ^GameBoy, state: []u8) -> (ok: bool) {
@@ -406,7 +406,8 @@ gameboy_load_state :: proc(gb: ^GameBoy, state: []u8) -> (ok: bool) {
 }
 
 gameboy_load_state_from_disk :: proc(gb: ^GameBoy, path: string) -> (ok: bool) {
-    state := os.read_entire_file(path) or_return
+    state, err := os.read_entire_file(path, context.allocator)
+    if err != nil do return
     defer delete(state)
 
     return gameboy_load_state(gb, state)
@@ -441,15 +442,13 @@ gameboy_stop_recording :: proc(gb: ^GameBoy, filename: string) {
 }
 
 gameboy_overwrite_sram :: proc(gb: ^GameBoy, savfile: string) -> (err: SAV_Error) {
-    sram, ok := os.read_entire_file(savfile)
-    if !ok {
-        return .IO_Error,
-    }
+    sram, ioerr := os.read_entire_file(savfile, context.allocator)
+    if ioerr != nil do return .IO_Error
     defer delete(sram)
 
     gameboy_save_state(gb, gb.state_buf)
     copy(gb.state_buf[gb.state_field_offsets["sram"]:], sram[0:0x8000])
-    ok = gameboy_load_state(gb, gb.state_buf)
+    ok := gameboy_load_state(gb, gb.state_buf)
     
     if !ok {
         err = .Bad_State

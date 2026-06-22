@@ -72,8 +72,8 @@ rom_destroy :: proc(rom: ROM) {
 }
 
 pad_rom :: proc(romfile: string) -> (padded_rom: []byte, err: ROM_Error) {
-    contents, success := os.read_entire_file(romfile)
-    if !success do return nil, ROM_Error.IO_Error
+    contents, ioerr := os.read_entire_file(romfile, context.allocator)
+    if ioerr != nil do return nil, .IO_Error
     defer delete(contents)
 
     buf: bytes.Buffer
@@ -94,9 +94,9 @@ pad_rom :: proc(romfile: string) -> (padded_rom: []byte, err: ROM_Error) {
 }
 
 parse_symbols :: proc(symfile: string) -> (contents: []u8, symbols: map[string]int, err: ROM_Error) {
-    success: bool
-    contents, success = os.read_entire_file(symfile)
-    if !success do return nil, nil, ROM_Error.IO_Error
+    ioerr: os.Error
+    contents, ioerr = os.read_entire_file(symfile, context.allocator)
+    if ioerr != nil do return nil, nil, .IO_Error
 
     symbols = make(map[string]int)
 

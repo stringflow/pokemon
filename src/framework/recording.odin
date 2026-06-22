@@ -1,6 +1,6 @@
 package framework
 
-import os "core:os/os2"
+import "core:os"
 
 Pipe :: struct {
     r: ^os.File,
@@ -23,7 +23,7 @@ pipe_open :: proc(command: []string) -> (pipe: Pipe, err: os.Error) {
 pipe_close :: proc(pipe: Pipe) -> (err: os.Error) {
     os.close(pipe.r) or_return
     os.close(pipe.w) or_return
-    os.process_close(pipe.p) or_return
+    os.process_terminate(pipe.p) or_return
 
     return
 }
@@ -55,7 +55,7 @@ recorder_stop :: proc(recorder: ^Recorder, filename: string) -> (err: os.Error) 
     
     state := os.process_wait(zipper_process) or_return
     if state.exited {
-        os.process_close(zipper_process) or_return
+        os.process_terminate(zipper_process) or_return
     }
 
     return
